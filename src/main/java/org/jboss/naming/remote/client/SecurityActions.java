@@ -46,6 +46,19 @@ final class SecurityActions {
         }
     }
 
+    static String getProperty(final String key, final String valueDefault) {
+        if (System.getSecurityManager() == null) {
+            return System.getProperty(key, valueDefault);
+        } else {
+            return AccessController.doPrivileged(new PrivilegedAction<String>() {
+                @Override
+                public String run() {
+                    return System.getProperty(key, valueDefault);
+                }
+            });
+        }
+    }
+
     private SecurityActions() {
 
     }

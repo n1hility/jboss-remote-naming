@@ -45,6 +45,12 @@ import static org.jboss.naming.remote.client.ClientUtil.namingEnumeration;
 public class RemoteContext implements Context, NameParser {
     private static final Logger log = Logger.getLogger(RemoteContext.class);
 
+    private static final boolean IBM;
+
+    static {
+        IBM = SecurityActions.getProperty("java.vm.vender","").matches(".*[Ii][Bb][Mm].*");
+    }
+
     private final Name prefix;
     private final Hashtable<String, Object> environment;
     private final RemoteNamingStore namingStore;
@@ -52,6 +58,8 @@ public class RemoteContext implements Context, NameParser {
     private final List<CloseTask> closeTasks;
 
     private final AtomicBoolean closed = new AtomicBoolean();
+    // Trick to keep IBM from finalizing in the middle of a method call
+    private byte preventFinalizer;
 
     public RemoteContext(final RemoteNamingStore namingStore, final Hashtable<String, Object> environment) {
         this(namingStore, environment, Collections.<CloseTask>emptyList());
@@ -76,83 +84,163 @@ public class RemoteContext implements Context, NameParser {
         if (isEmpty(name)) {
             return new RemoteContext(prefix, namingStore, environment);
         }
-        return namingStore.lookup(getAbsoluteName(name));
+        try {
+            return namingStore.lookup(getAbsoluteName(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public Object lookup(final String name) throws NamingException {
-        return lookup(parse(name));
+        try {
+            return lookup(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void bind(final Name name, final Object object) throws NamingException {
-        namingStore.bind(getAbsoluteName(name), object);
+        try {
+            namingStore.bind(getAbsoluteName(name), object);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void bind(final String name, final Object object) throws NamingException {
-        bind(parse(name), object);
+        try {
+            bind(parse(name), object);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void rebind(final Name name, final Object object) throws NamingException {
-        namingStore.rebind(name, object);
+        try {
+            namingStore.rebind(name, object);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void rebind(final String name, final Object object) throws NamingException {
-        rebind(parse(name), object);
+        try {
+            rebind(parse(name), object);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void unbind(final Name name) throws NamingException {
-        namingStore.unbind(name);
+        try {
+            namingStore.unbind(name);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void unbind(final String name) throws NamingException {
-        unbind(parse(name));
+        try {
+            unbind(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void rename(final Name name, final Name newName) throws NamingException {
-        namingStore.rename(name, newName);
+        try {
+            namingStore.rename(name, newName);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void rename(final String name, final String newName) throws NamingException {
-        rename(parse(name), parse(newName));
+        try {
+            rename(parse(name), parse(newName));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public NamingEnumeration<NameClassPair> list(final Name name) throws NamingException {
-        return namingEnumeration(namingStore.list(name));
+        try {
+            return namingEnumeration(namingStore.list(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public NamingEnumeration<NameClassPair> list(final String name) throws NamingException {
-        return list(parse(name));
+        try {
+            return list(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public NamingEnumeration<Binding> listBindings(final Name name) throws NamingException {
-        return namingEnumeration(namingStore.listBindings(name));
+        try {
+            return namingEnumeration(namingStore.listBindings(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public NamingEnumeration<Binding> listBindings(final String name) throws NamingException {
-        return listBindings(parse(name));
+        try {
+            return listBindings(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void destroySubcontext(final Name name) throws NamingException {
-        namingStore.destroySubcontext(name);
+        try {
+            namingStore.destroySubcontext(name);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public void destroySubcontext(final String name) throws NamingException {
-        destroySubcontext(parse(name));
+        try {
+            destroySubcontext(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public Context createSubcontext(final Name name) throws NamingException {
-        return namingStore.createSubcontext(name);
+        try {
+            return namingStore.createSubcontext(name);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public Context createSubcontext(final String name) throws NamingException {
-        return createSubcontext(parse(name));
+        try {
+            return createSubcontext(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public Object lookupLink(final Name name) throws NamingException {
-        return namingStore.lookupLink(name);
+        try {
+            return namingStore.lookupLink(name);
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public Object lookupLink(final String name) throws NamingException {
-        return lookupLink(parse(name));
+        try {
+            return lookupLink(parse(name));
+        } finally {
+            if (IBM) preventFinalizer++;
+        }
     }
 
     public NameParser getNameParser(Name name) throws NamingException {
@@ -194,6 +282,8 @@ public class RemoteContext implements Context, NameParser {
     }
 
     public void finalize() {
+        if (IBM) preventFinalizer++;
+
         if(closed.compareAndSet(false, true)) {
             for (CloseTask closeTask : closeTasks) {
                 closeTask.close(true);
