@@ -48,7 +48,7 @@ public class RemoteContext implements Context, NameParser {
     private static final boolean IBM;
 
     static {
-        IBM = SecurityActions.getProperty("java.vm.vender","").matches(".*[Ii][Bb][Mm].*");
+        IBM = SecurityActions.getProperty("java.vm.vendor","").matches(".*[Ii][Bb][Mm].*");
     }
 
     private final Name prefix;
